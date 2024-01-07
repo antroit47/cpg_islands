@@ -1,8 +1,11 @@
 import requests
 from typing import List
 from io import StringIO
-from Bio import SeqIO, SeqRecord
+from Bio import SeqIO, SeqRecord, Seq
 import time
+import logging
+
+NCBI_LINK = "https://www.ncbi.nlm.nih.gov/search/api/download-sequence/?db=nuccore&id="
 
 
 GENOME_NAME = "DQ011153.1"  # Monkeypox, 0.44 sec
@@ -22,7 +25,7 @@ class Island:
         interval_end: int,
         gc_perc: float,
         obs_exp: float,
-        win_length: str,
+        win_length: int,
     ):
         self.interval_begin = interval_begin
         self.interval_end = interval_end
@@ -34,14 +37,11 @@ class Island:
         return f"Island at ({self.interval_begin}, {self.interval_end})\tgcper:{self.gc_perc}\tobs_exp:{self.obs_exp}\twin length:{self.win_length}"
 
 
-def get_sequence_from_ncbi(genome_id: str) -> str:
-    response = requests.get(
-        "https://www.ncbi.nlm.nih.gov/search/api/download-sequence/?db=nuccore&id=" + genome_id
-    )
+def get_sequence_from_ncbi(genome_id: str) -> Seq:
+    response = requests.get(NCBI_LINK + genome_id)
     genome = response.content.decode()
     if genome.startswith("Error"):
         raise Exception("Error, genome not found")
-    print("genome found")
 
     fasta_io = StringIO(genome)
     records = list(SeqIO.parse(fasta_io, "fasta"))
@@ -49,8 +49,7 @@ def get_sequence_from_ncbi(genome_id: str) -> str:
 
 
 def find_islands_simple(record: SeqRecord) -> List[Island]:
-    record_length = len(record)
-    if record_length < MIN_WINDOW_SIZE:
+    if (record_length := len(record)) < MIN_WINDOW_SIZE:
         return []
     found_islands = []
     window_position = 0
@@ -59,8 +58,6 @@ def find_islands_simple(record: SeqRecord) -> List[Island]:
     gc_count = window.count("G") + window.count("C")
     obs_cpg = window.count("CG")
     while True:
-        # gc_count = window.count("G") + window.count("C")
-        # obs_cpg = window.count("CG")
         gc_perc = gc_count / MIN_WINDOW_SIZE
         exp_cpg = ((gc_count / 2) ** 2) / MIN_WINDOW_SIZE
         try:
@@ -98,22 +95,17 @@ def find_islands_simple(record: SeqRecord) -> List[Island]:
 
 
 def find_island_1bp_shifts(
-    record_position: int, record: SeqRecord, min_window_size: str, record_length: int
+    record_position: int, record: SeqRecord, min_window_size: int, record_length: int
 ) -> int:
     window = record[record_position : record_position + min_window_size]
     gc_count, obs_cpg = new_window_gcs(window)
     while True:
         gc_perc, obs_exp, is_island = island_evaluation(gc_count, obs_cpg, min_window_size)
         if is_island:
-            print(f"island found {record_position, record_position + min_window_size}")
+            logging.debug(f"island found {record_position, record_position + min_window_size}")
             return record_position
-            # found_islands.append(Island(begin=record_position,
-            #                             end=window_position + MIN_WINDOW_SIZE,
-            #                             gc_perc=gc_perc,
-            #                             obs_exp=obs_exp,
-            #                             win_length=MIN_WINDOW_SIZE))
         if record_position + min_window_size + 1 > record_length:
-            print("reached the end of record")
+            logging.debug("reached the end of record")
             return -1
         gc_count, obs_cpg, record_position = shift_window_1bp(
             gc_count, obs_cpg, record, record_position
@@ -126,56 +118,54 @@ def new_window_gcs(window):
     return gc_count, obs_cpg
 
 
-def find_islands(record: SeqRecord) -> List[Island]:
-    record_length = len(record)
-    if record_length < MIN_WINDOW_SIZE:
-        return []
+def find_islands(record: SeqRecord, min_window_size: int) -> List[Island]:
     found_islands = []
+    if (record_length := len(record)) < min_window_size:
+        return found_islands
 
     record_position = 0
-
     while True:
         # step 1 find window that is an island
-        print("- Stage 1 1bp shifts")
+        logging.debug("- Stage 1: 1bp shifts")
         record_position = find_island_1bp_shifts(
-            record_position, record, MIN_WINDOW_SIZE, record_length
+            record_position, record, min_window_size, record_length
         )
         if record_position == -1:
             break
 
         # step 2 window-length shifts
-        print("- Stage 2 window-length shifts")
+        logging.debug("- Stage 2: window-length shifts")
         island_start = record_position
-        record_position += MIN_WINDOW_SIZE  # perform a shift and evaluate the following windows
+        record_position += min_window_size  # perform a shift and evaluate the following windows
         island_end = extend_island_window_shifts(record, record_length, record_position)
-        print(f"island: {island_start}, {island_end}")
+        logging.debug(f"island: {island_start}, {island_end}")
 
         # step 3 shift the last window by 1bp until it meets the criteria
-        print("- Stage 3 1bp rollback")
-        window = record[island_end - MIN_WINDOW_SIZE : island_end]
+        logging.debug("- Stage 3: 1bp rollback")
+        window = record[island_end - min_window_size : island_end]
         gc_count, obs_cpg = new_window_gcs(window)
 
-        for i in range(1, MIN_WINDOW_SIZE):
+        for i in range(1, min_window_size):
             if record[island_end - i] in ["C", "G"]:
                 gc_count -= 1
-            if record[island_end - MIN_WINDOW_SIZE - i] in ["C", "G"]:
+            if record[island_end - min_window_size - i] in ["C", "G"]:
                 gc_count += 1
             if record[island_end - i - 2 : island_end - i] == "CG":
                 obs_cpg -= 1
             if (
-                record[island_end - MIN_WINDOW_SIZE - i - 2 : island_end - MIN_WINDOW_SIZE - i]
+                record[island_end - min_window_size - i - 2 : island_end - min_window_size - i]
                 == "CG"
             ):
                 obs_cpg += 1
             gc_perc, obs_exp, is_island = island_evaluation(gc_count, obs_cpg, MIN_WINDOW_SIZE)
             if is_island:
-                print(f"island ending shrunk by {i}")
+                logging.debug(f"island ending shrunk by {i}")
                 break
         island_end = island_end - i
-        print(f"Updated island after 1bp shrinking {island_start}, {island_end}")
+        logging.debug(f"Updated island after 1bp shrinking {island_start}, {island_end}")
 
         # step 4 shrink the whole island by 1bp until it meets the criteria
-        print("- Stage 4 1bp two-fold shrinking")
+        logging.debug("- Stage 4 1bp two-fold shrinking")
         window = record[island_start:island_end]
         gc_count, obs_cpg = new_window_gcs(window)
 
@@ -193,7 +183,7 @@ def find_islands(record: SeqRecord) -> List[Island]:
                 gc_count -= 1
             island_start += 1
             island_end -= 1
-        print(f"updated island after shrinking: {island_start}, {island_end}")
+        logging.debug(f"updated island after shrinking: {island_start}, {island_end}")
 
         found_islands.append(
             Island(
@@ -204,15 +194,15 @@ def find_islands(record: SeqRecord) -> List[Island]:
                 win_length=island_end - island_start,
             )
         )
-        print("AAA")
         record_position = island_end
 
-    print("-- INITIAL SCAN COMPLETE")
+    logging.debug("-- INITIAL SCAN COMPLETE")
 
     # step 5 at the end merge islands that are at least 100bp apart
-    print("- Stage 5 merging islands")
+    logging.debug("- Stage 5 merging islands")
     merged_islands = []
 
+    # TODO testing bloat remove
     found_islands.append(
         Island(
             interval_begin=189260, interval_end=189480, gc_perc=0.51, obs_exp=0.9, win_length=200
@@ -234,7 +224,7 @@ def find_islands(record: SeqRecord) -> List[Island]:
 
         for found_island in found_islands:
             if found_island.interval_begin - merged_islands[-1].interval_end < MIN_ISLAND_MERGE_GAP:
-                print(
+                logging.debug(
                     f"Merged Islands at {merged_islands[-1].interval_end}, {found_island.interval_end}"
                 )
                 merged_islands[-1].interval_end = found_island.interval_end
@@ -247,7 +237,7 @@ def extend_island_window_shifts(record, record_length, record_position):
     while True:
         real_window_length = min(MIN_WINDOW_SIZE, record_length - 1 - record_position)
         if real_window_length < 2:
-            print("reached end of sequence in big jump")
+            logging.warning("reached end of sequence in big jump")
             island_end = record_position
             break
         window = record[record_position:real_window_length]
@@ -255,7 +245,7 @@ def extend_island_window_shifts(record, record_length, record_position):
         gc_perc, obs_exp, is_island = island_evaluation(gc_count, obs_cpg, real_window_length)
         record_position += real_window_length
         if not is_island:
-            print("window is no longer an island")
+            logging.debug("window is no longer an island")
             island_end = record_position
             break
     return island_end
@@ -293,12 +283,12 @@ def shift_window_1bp(
 
 
 def main():
+    logging.debug = print  # comment for debug logs
     record = get_sequence_from_ncbi(GENOME_NAME)
     print(f"record len: {len(record)}")
-    # assert record_length >= MIN_WINDOW_SIZE  # TODO check this or maybe not needed
 
     start = time.time()
-    islands = find_islands(record)  # time: 0.3477661609649658  ->
+    islands = find_islands(record, MIN_WINDOW_SIZE)  # time: 0.3477661609649658  ->
     end = time.time()
 
     for island in islands:
@@ -306,10 +296,6 @@ def main():
 
     print(f"Time: {end - start}")
     print("Done")
-    # record = records[0].seq
-    # print(record)
-
-    # fasta_sequences = SeqIO.parse(response.content, 'fasta')
 
 
 if __name__ == "__main__":
