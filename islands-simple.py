@@ -5,8 +5,8 @@ from Bio import SeqIO, SeqRecord
 import time
 
 
-GENOME_NAME = "DQ011153.1"  # Monkeypox, 0.44 sec
-# GENOME_NAME = "NC_060948.1"  # Human, 125 sec
+# GENOME_NAME = "DQ011153.1"  # Monkeypox, 0.44 sec
+GENOME_NAME = "NC_060948.1"  # Human, 125 sec
 
 # algorithm paramteres
 MIN_WINDOW_SIZE = 200
@@ -21,7 +21,7 @@ class Island:
         interval_end: int,
         gc_perc: float,
         obs_exp: float,
-        win_length: str,
+        win_length: int,
     ):
         self.interval_start = interval_start
         self.end = interval_end
@@ -40,7 +40,6 @@ def get_sequence_from_ncbi(genome_id: str) -> str:
     genome = response.content.decode()
     if genome.startswith("Error"):
         raise Exception("Error, genome not found")
-    print("genome found")
 
     fasta_io = StringIO(genome)
     records = list(SeqIO.parse(fasta_io, "fasta"))
@@ -58,8 +57,6 @@ def find_islands_simple_algorithm(record: SeqRecord) -> List[Island]:
     gc_count = window.count("G") + window.count("C")
     obs_cpg = window.count("CG")
     while True:
-        # gc_count = window.count("G") + window.count("C")
-        # obs_cpg = window.count("CG")
         gc_perc = gc_count / MIN_WINDOW_SIZE
         exp_cpg = ((gc_count / 2) ** 2) / MIN_WINDOW_SIZE
         try:
@@ -70,7 +67,7 @@ def find_islands_simple_algorithm(record: SeqRecord) -> List[Island]:
             found_islands.append(
                 Island(
                     interval_start=window_position,
-                    insterval_end=window_position + MIN_WINDOW_SIZE,
+                    interval_end=window_position + MIN_WINDOW_SIZE,
                     gc_perc=gc_perc,
                     obs_exp=obs_exp,
                     win_length=MIN_WINDOW_SIZE,
@@ -98,7 +95,6 @@ def find_islands_simple_algorithm(record: SeqRecord) -> List[Island]:
 
 record = get_sequence_from_ncbi(GENOME_NAME)
 print(f"record len: {len(record)}")
-# assert record_length >= MIN_WINDOW_SIZE  # TODO check this or maybe not needed
 
 start = time.time()
 islands = find_islands_simple_algorithm(record)  # time: 0.43636059761047363

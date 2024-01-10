@@ -1,10 +1,6 @@
-# CpG Island Discovery
+# CpG Island Discovery Command Line Tool Specification
 
-_This is an outdated specification for a command line tool._
-
-## Specification
-
-Due to the general simplicity of the task for finding CpG islands, the best approach seems to be a simple python command line tool controlled with command line arguments coming with well written README and well documented functionality.
+_This is an outdated specification for a command line tool aiming to solve the issue of finding CpG islands based on genome names._
 
 ### Application Functionality
 
@@ -54,16 +50,18 @@ Allow the user to specify multiple input records to evaluate all of them in a ba
 
 #### Parallel Evaluation
 
-Use multithreading to parallelize the task of finding CpG islands. This may happen in two layers. First, the multi input feature can be supported with this, where the parallelization of work on different genes is always possible, so multiple records may be inspected simultaneously. The second may be the parallel evaluation within each single evaluated gene, which may or may not be possible given the specific algorithm. 
+Use multiprocessing or workers to parallelize the task of finding CpG islands. Due to the chosen algorithm, only the multi input feature can be paralelized, not the actual computation itself, as the algorithm execution cannot be separated into multiple chunks. 
 
 #### Other than CpG Islands
 
 Perhaps finding "islands" formed with other components, like GpC, ApT, TpA, CpA, and so on, may be of interest. The user could specify what kind of the island they want to search for.
 
 #### Visualize Output Information
+
 The resulting list of islands in the gene may be visualized when nature of this visualisation should be discussed further.
 
 #### Parametrize Algorithm Execution
+
 Allow the user to change the parameters of the selected algorithm. For example to change the minimal island length from 200 base pairs, raise the required CG percentage and so on. As the definition of CpG islands varies greatly across the sources, this may prove to be useful to "change" the algorithm and match its results to the ones produced by a different implementation.
 
 ### Installation
