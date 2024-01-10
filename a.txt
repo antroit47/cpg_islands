@@ -1,7 +1,0 @@
-simple https://www.bioinformatics.org/sms2/cpg_islands.html
-galaxy: https://usegalaxy.org/?tool_id=toolshed.g2.bx.psu.edu%2Frepos%2Fdevteam%2Femboss_5%2FEMBOSS%3A%20newcpgseek58%2F5.0.0.1&version=latest
-
-complicated: https://github.com/lucasnell/TaJoCGI
-
-algo
-https://www.pnas.org/doi/10.1073/pnas.052410099

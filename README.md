@@ -14,6 +14,11 @@ python islands.py
 
 The script in `islands.py` is controlled through constants at its beginning. The algorithm itself comes fully parametrized, including the nucleotide content of the islands (normally C and G in this order). The algorithm defaults are taken from its original specification.
 
+Currently, the script only prints its output to the console, to store it on Linux distributions, run the program with the following command:
+```
+python islands.py > output.txt
+```
+
 #### Program parameters
 * `NCBI_LINK` - Link to the NCBI file server
 * `GENOME_NAME` - Name of the genome on the NCBI server, which will get downloaded and analyzed
@@ -36,3 +41,4 @@ _The original specification of the algorithm is rather ambiguous, but this imple
 - If there are multiple records returned form the NCBI, the computation is only done for the first one.
 - The algorithm, as per the specification drops small islands near the minimal window size in search of bigger ones. It can also shrink islands slightly. Consequently, its results are not comparable to the [naive implementation](https://www.bioinformatics.org/sms2/cpg_islands.html), which just finds islands of length 200, even if we merge these islands in case they are next to each other.
 - Merging windows with small gaps in between may result in the larger windows not meeting the simple window criteria, but being windows because of the condition that connecting windows breached by a reasonable gap results in a window.
+- Since this is a prototype, the output of the tool is not in any way "pretty" or to be directly used as a csv. 

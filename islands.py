@@ -8,8 +8,8 @@ import logging
 NCBI_LINK = "https://www.ncbi.nlm.nih.gov/search/api/download-sequence/?db=nuccore&id="
 
 # genome name to download and analyze from NCBI
-# GENOME_NAME = "DQ011153.1"  # Monkeypox, 0.44 sec
-GENOME_NAME = "NC_060948.1"  # Human, 125 sec
+GENOME_NAME = "DQ011153.1"  # Monkeypox, 0.44 sec
+# GENOME_NAME = "NC_060948.1"  # Human, 125 sec
 
 # algorithm parameters explained in README.md
 MIN_WINDOW_SIZE = 200
@@ -41,7 +41,7 @@ class Window:
         self.update_gc_count()
 
     def __str__(self):
-        return f"Window at ({self.window_begin}, {self.window_end})\tgcper:{self.gc_perc}\tobs_exp:{self.obs_exp}\twin length:{self.window_size}"
+        return f"Window at ({self.window_begin}, {self.window_end})\tgcper:{self.gc_perc}\tobs_exp:{self.obs_exp}\twin_length:{self.window_size}"
 
     def is_island(self) -> bool:
         """Evaluate the current window and return True if it fits the definition of an island."""
