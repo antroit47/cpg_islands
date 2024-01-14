@@ -232,6 +232,8 @@ def find_islands(record: SeqRecord) -> List[Window]:
 
     :return: List of found islands
     """
+    if len(record) < MIN_WINDOW_SIZE:
+        return []
     found_islands = []
     record_position = 0
     while True:

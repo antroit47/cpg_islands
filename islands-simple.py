@@ -5,10 +5,10 @@ from Bio import SeqIO, SeqRecord
 import time
 
 
-# GENOME_NAME = "DQ011153.1"  # Monkeypox, 0.44 sec
-GENOME_NAME = "NC_060948.1"  # Human, 125 sec
+GENOME_NAME = "DQ011153.1"  # Monkeypox, 0.44 sec
+# GENOME_NAME = "NC_060948.1"  # Human, 125 sec
 
-# algorithm paramteres
+# algorithm parameters
 MIN_WINDOW_SIZE = 200
 MIN_GC_PERCENTAGE = 0.5
 MIN_OBSERVED_TO_EXPECTED_CPG = 0.6
