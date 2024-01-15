@@ -19,11 +19,11 @@ Currently, the script only prints its output to the console, to store it on Linu
 python islands.py > output.txt
 ```
 
-#### Program parameters
+#### Control parameter constants
 * `NCBI_LINK` - Link to the NCBI file server
-* `GENOME_NAME` - Name of the genome on the NCBI server, which will get downloaded and analyzed
+* `GENOME_NAME` - Name of the genome on the NCBI server to analyze
 
-#### Algorithm parameters
+#### Algorithm parameter constants
 
 * `MIN_WINDOW_SIZE` - Minimal bp size of the window that can be considered an island (default `200`)
 * `MIN_GC_PERCENTAGE` - Minimal required nucleotide content of preferred (default `0.5`)
